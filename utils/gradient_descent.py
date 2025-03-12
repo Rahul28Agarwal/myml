@@ -15,6 +15,7 @@ class GradientDescent:
         
     def predict(self, w, x, b):
         return w*x + b
+    
     def compute(self) -> None:
         w = self.w_in.copy()
         b = self.b_in.copy()
