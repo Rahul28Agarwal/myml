@@ -1,5 +1,6 @@
 [project]
 name = "myml"
+version = "0.1.0"
 description = "machine learning algorithm package"
 authors = [
     {name = "Rahul Agarwal", email = "rahulagg1997@gmail.com"}
@@ -12,10 +13,7 @@ dependencies = [
     "matplotlib>=3.4.0",
     "seaborn>=0.11.0",
 ]
-[project.urls]
-"Homepage" = ""
-"Bug Tracker" = ""
-"Documentation" = ""
+
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
