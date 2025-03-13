@@ -1,0 +1,48 @@
+[project]
+name = "myml"
+description = "machine learning algorithm package"
+authors = [
+    {name = "Rahul Agarwal", email = "rahulagg1997@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "pandas>=1.3.0",
+    "numpy>=1.20.0",
+    "matplotlib>=3.4.0",
+    "seaborn>=0.11.0",
+]
+[project.urls]
+"Homepage" = ""
+"Bug Tracker" = ""
+"Documentation" = ""
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# Target Python 3.9+
+target-version = "py39"
+# Set line length to 120
+line-length = 120
+# Assume Python 3.9
+# Ignore specific rules
+ignore = [
+    "PLR0915",  # Too many statements
+    "PD011",    # Use .to_numpy() instead of .values
+    "RET504",   # Unnecessary assignment before return
+    "T201",     # Print statement
+    "N806",     # Variable in function should be lowercase
+    "TID252",   # Relative imports from parent modules
+    "FBT002",   # Boolean arguments in function definition
+]
+
+[tool.ruff.lint]
+# Enable all rules by default, then make specific exclusions
+select = ["ALL"]
+# Additional rules to enforce
+extend-select = ["E501"]
+
+[tool.black]
+line-length = 120
+target-version = ['py39']
