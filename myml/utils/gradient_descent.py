@@ -1,7 +1,7 @@
 from __future__ import annotations
 import pandas as pd
 import numpy as np
-from ..myml.metrics.regression import RegressionMetrics
+from ..metrics.regression import RegressionMetrics
 
 class GradientDescent:
     def __init__(self, x: pd.Series, y: pd.Series, w_in: pd.Series, b_in: pd.Series, alpha: float, num_iters=1000) -> None:
@@ -25,7 +25,7 @@ class GradientDescent:
         for i in range(self.num_iters):
             predict = self.predict(w, self.x, b)
             j_old = RegressionMetrics(predict, self.y).mean_square_error()
-            j_history = j_history.append(j_old)
+            j_history.append(j_old)
             m = len(self.x)
             w_temp = w - (self.alpha * np.sum(predict - self.y) * self.x)/m
             b_temp = b - (self.alpha * np.sum(predict - self.y))/m
@@ -34,8 +34,8 @@ class GradientDescent:
             
             predict = self.predict(w, self.x, b)
             j_new = RegressionMetrics(predict, self.y).mean_square_error()
-            j_history = j_history.append(j_new)
-            p_history = p_history.append([w,b])
+            j_history.append(j_new)
+            p_history.append([w,b])
             if j_new > j_old:
                 return w, b, j_history, p_history
             
