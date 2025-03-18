@@ -9,5 +9,5 @@ class RegressionMetrics:
         
     def mean_square_error(self) -> float:
         m = len(self.pred)
-        mse = (np.sum(self.pred - self.actual)**2)/m
+        mse = np.sum((self.pred - self.actual)**2)/m
         return mse
