@@ -1,6 +1,8 @@
 from __future__ import annotations
-import pandas as pd
+
 import numpy as np
+import pandas as pd
+
 
 class ClassificationMetric:
     def __init__(
@@ -20,36 +22,36 @@ class ClassificationMetric:
         self.learning_rate = learning_rate
         self.max_iter = max_iter
         self.tol = tol
-        
+
     def sigmoid(self, z):
-        z = np.clip(z, -500, 500)
+
         return 1/(1 + np.exp(-z))
-        
+
     def compute_logistic_gradient(self, x, y, w, b) -> float:
         m = len(x)
-        z = self.sigmoid(np.dot(self.x, w) + b)
+        predictions = self.sigmoid(np.dot(x, w) + b)
         # Reshape y and z to ensure they're both column vectors (m,1) if needed
-        y_reshaped = y.reshape(-1, 1) if len(y.shape) == 1 else y
-        z_reshaped = z.reshape(-1, 1) if len(z.shape) == 1 else z
-    
-        dw = (1/m) * np.dot(self.x.T, (z_reshaped - y_reshaped))
-        db = (1/m) * np.sum(z_reshaped - y_reshaped)
+        # y_reshaped = y.reshape(-1, 1) if len(y.shape) == 1 else y
+        # z_reshaped = z.reshape(-1, 1) if len(z.shape) == 1 else z
+
+        dw = (1/m) * np.dot(x.T, (predictions - y))
+        db = (1/m) * np.sum(predictions - y)
         return dw, db
 
     def gradient_descent(self):
-        
+
         w = self.w_init.copy()
         b = self.b_init
         cost_history = []
-        
-        x = self.x.to_numpy() if isinstance(self.x, pd.DataFrame) else self.x
-        y = self.y.to_numpy() if isinstance(self.y, pd.Series) else self.y
-        
+
+        # x = self.x.to_numpy() if isinstance(self.x, pd.DataFrame) else self.x
+        # y = self.y.to_numpy() if isinstance(self.y, pd.Series) else self.y
+
         for i in range(self.max_iter):
-            dw, db = self.compute_logistic_gradient(x, y, w, b)
-            
+            dw, db = self.compute_logistic_gradient(self.x, self.y, w, b)
+
             # update parameters
             w = w  - self.learning_rate * dw
             b = b - self.learning_rate * db
-            
+
         return w, b

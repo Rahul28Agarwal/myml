@@ -5,6 +5,7 @@ import pandas as pd
 
 from ..metrics.classification import ClassificationMetric
 
+
 class LogisticRegression:
     def __init__(self, learning_rate: float = 0.05, max_iter:int = 10000) -> None:
         self.learning_rate = learning_rate
@@ -16,31 +17,32 @@ class LogisticRegression:
         """Convert input data to a consistent 2D numpy array format."""
         if isinstance(x, pd.Series):
             return x.to_numpy().reshape(-1, 1)
-        elif isinstance(x, np.ndarray) and len(x.shape) == 1:
+        if isinstance(x, np.ndarray) and len(x.shape) == 1:
             return x.reshape(-1, 1)
-        elif isinstance(x, pd.DataFrame):
+        if isinstance(x, pd.DataFrame):
             return x.to_numpy()
-        else:
-            # For other array-like objects or types we don't recognize
-            return np.asarray(x).reshape(-1, 1) if np.asarray(x).ndim == 1 else np.asarray(x)
-        
+        # For other array-like objects or types we don't recognize
+        return np.asarray(x).reshape(-1, 1) if np.asarray(x).ndim == 1 else np.asarray(x)
+
     def fit(self, x: pd.DataFrame, y:pd.Series) -> LogisticRegression:
         # Convert input to standard format
-        x = self._validate_data(x)
-        
-        w = np.zeros(x.shape[1])
+        # x = self._validate_data(x)
+
+        n_samples, n_features = x.shape
+
+        w = np.zeros(n_features)
         b = 0.0
-        
+
         # Run gradient descent
         optimizer = ClassificationMetric(x, y, w, b, self.learning_rate, self.max_iter)
         self.coef_ , self.intercept_ = optimizer.gradient_descent()
-        
+
         return self
-    
+
     def sigmoid(self, z):
         z = np.clip(z, -500, 500)
         return 1/(1 + np.exp(-z))
-    
+
     def predict(self, x: pd.DataFrame) -> pd.Series:
 
         # Check if model is fitted
@@ -53,4 +55,6 @@ class LogisticRegression:
 
         # Make predictions
         z = np.dot(x, self.coef_) + self.intercept_
-        return self.sigmoid(z)
+        predictions = self.sigmoid(z)
+        y_pred = [1 if pred > 0.5 else 0 for pred in predictions]
+        return y_pred
