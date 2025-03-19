@@ -33,6 +33,7 @@ ignore = [
     "N806",     # Variable in function should be lowercase
     "TID252",   # Relative imports from parent modules
     "FBT002",   # Boolean arguments in function definition
+    "N806",
 ]
 
 [tool.ruff.lint]
