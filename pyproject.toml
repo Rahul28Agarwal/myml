@@ -19,6 +19,7 @@ dependencies = [
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.ruff]
 # Target Python 3.9+
 target-version = "py39"
 # Set line length to 120
@@ -33,6 +34,7 @@ ignore = [
     "N806",     # Variable in function should be lowercase
     "TID252",   # Relative imports from parent modules
     "FBT002",   # Boolean arguments in function definition
+    "N806",
 ]
 
 [tool.ruff.lint]
