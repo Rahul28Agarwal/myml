@@ -119,7 +119,7 @@ class LinearModel:
         return np.mean((predict - y) ** 2)
 
     @staticmethod
-    def mse_gradients(X: np.ndarray, y: np.ndarray, params: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+    def mse_gradients(X: np.ndarray, y: np.ndarray, params: dict[str, np.ndarray]) -> dict[str, np.ndarray]:  # noqa: N803
         """Compute gradients for MSE loss.
 
         Args:
