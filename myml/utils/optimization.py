@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Callable
 
 import numpy as np
-import pandas as pd
 
 
 class GradientDescent:
@@ -80,3 +79,63 @@ class GradientDescent:
         }
 
         return params, optimization_info
+
+class LinearModel:
+    """Helper class for linear model optimization.
+
+    This class provides methods for computing predictions, 
+    loss, and gradients for linear models including linear regression.
+
+    """
+
+    @staticmethod
+    def predict(X: np.ndarray, params: dict[str, np.ndarray]) -> np.ndarray:  # noqa: N803
+        """Compute linear model predictions.
+
+        Args:
+            X (np.ndarray): Input features
+            params (dict[str, np.ndarray]): Parameters with 'coef' and 'intercept' keys
+
+        Returns:
+            np.ndarray: Predicted values
+
+        """
+        return np.dot(X, params["coef"]) + params["intercept"]
+
+    @staticmethod
+    def mse_loss(X: np.ndarray, y: np.ndarray, params: dict[str, np.ndarray]) -> float:  # noqa: N803
+        """Compute mean squared error loss.
+
+        Args:
+            X (np.ndarray): Input features
+            y (np.ndarray): True target values
+            params (dict[str, np.ndarray]): Parameters with 'coef' and 'intercept' keys
+
+        Returns:
+            float: Mean squared error
+
+        """
+        predict = LinearModel.predict(X, params)
+        return np.mean((predict - y) ** 2)
+
+    @staticmethod
+    def mse_gradients(X: np.ndarray, y: np.ndarray, params: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+        """Compute gradients for MSE loss.
+
+        Args:
+            X (np.ndarray): Input features
+            y (np.ndarray): True target values
+            params (Dict[str, np.ndarray]): Parameters with 'coef' and 'intercept' keys
+
+        Returns:
+            Dict[str, np.ndarray]: Gradients for each parameter
+
+        """
+        n_samples = X.shape[0]
+        predictions = LinearModel.predict(X, params)
+        error = predictions - y
+
+        return {
+            "coef": (1/n_samples) * np.dot(X.T, error),
+            "intercept": np.array([np.mean(error)]),
+        }
