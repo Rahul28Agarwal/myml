@@ -1,58 +1,82 @@
 from __future__ import annotations
 
+from typing import Callable
+
 import numpy as np
 import pandas as pd
 
-from ..metrics.regression import RegressionMetrics  # noqa: TID252
-
 
 class GradientDescent:
+    """Generic gradient descent optimizer for machine learning models."""
+
     def __init__(
         self,
-        x: pd.Series,
-        y: pd.Series,
-        w_init: pd.Series,
-        b_init: pd.Series,
         learning_rate: float,
         max_iter: int = 1000,
-        tol:float = 1e-4,
+        tol: float = 1e-4,
     ) -> None:
-        self.X = x
-        self.y = y
-        self.w_init = w_init
-        self.b_init = b_init
+        """Initialize GradientDescent.
+
+        Args:
+            learning_rate (float): Step size for parameter updates
+            max_iter (int, optional): Maximum number of iterations.. Defaults to 1000.
+            tol (float, optional): Convergence tolerance based on improvement in loss. Defaults to 1e-4.
+
+        """
         self.learning_rate = learning_rate
         self.max_iter = max_iter
         self.tol = tol
 
 
-    def compute(self) -> None:
-        w = self.w_init.copy()
-        b = self.b_init
-        cost_history = []
+    def optimize(
+        self,
+        X: np.ndarray,  # noqa: N803
+        y: np.ndarray,
+        params_init: dict[str, np.ndarray],
+        compute_loss: Callable,
+        compute_gradients: Callable,
+    ) -> tuple[dict[str, np.ndarray], dict[str, any]]:
+        """Run gradient descent optimization.
 
-        x = self.X.to_numpy() if isinstance(self.X, pd.DataFrame) else self.X
-        y = self.y.to_numpy() if isinstance(self.y, pd.Series) else self.y
+        Args:
+            X (np.ndarray): Input features of shape (n_samples, n_features)
+            y (np.ndarray): Target values of shape (n_samples,)
+            params_init (dict[str, np.ndarray]): Initial parameter values.
+                Each key is a parameter name, and each value is a numpy array.
+            compute_loss (Callable): Function to compute the loss value
+            compute_gradients (Callable):  Function to compute gradients
 
-        for i in range(self.max_iter):
-            # Make prediction
-            y_pred = np.dot(x, w) + b
+        Returns:
+            tuple[dict[str, np.ndarray], dict[str, any]]: A tuple containing:
+                - params: Dictionary of optimized parameter values
+                - optimization_info: Dictionary with optimization information
 
-            # Compute cost using RegressionMetrics
-            metrics = RegressionMetrics(y_pred, y)
-            cost = metrics.mean_square_error()
-            cost_history.append(cost)
+        """
+        # Initialize parameters
+        params = {k: v.copy() for k, v in params_init.items()}
+        loss_history = []
+
+        # Run optimization
+        for iteration in range(self.max_iter):
+            # Compute current loss
+            current_loss = compute_loss(X, y, params)
+            loss_history.append(current_loss)
 
             # Compute gradients
-            m = len(x)
-            dw = (1/m) * np.dot(x.T, (y_pred - y))
-            db = (1/m) * np.sum(y_pred - y)
+            gradients = compute_gradients(X, y, params)
 
-            # update parameters
-            w = w - self.learning_rate * dw
-            b = b - self.learning_rate * db
+            # Update parameters
+            for param_name in params:
+                params[param_name] -= self.learning_rate * gradients[param_name]
 
             # Check for convergence
-            if i > 0 and abs(cost_history[i-1] - cost) < self.tol:
+            if iteration > 0 and abs(loss_history[iteration -1 ] - current_loss) < self.tol:
                 break
-        return w, b, {"cost_history": cost_history}
+
+        # Create result info
+        optimization_info = {
+            "loss_history": loss_history,
+            "n_iter": len(loss_history),
+        }
+
+        return params, optimization_info
