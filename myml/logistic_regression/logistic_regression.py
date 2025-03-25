@@ -1,60 +1,134 @@
 from __future__ import annotations
 
 import numpy as np
-import pandas as pd
 
-from ..metrics.classification import ClassificationMetric
+from ..base import BaseEstimator, ClassifierMixin
+from ..exception import NotFittedError, ParameterError, ValidationError
+from ..utils.optimization import GradientDescent, LinearModel
+from ..utils.validation import ArrayLike, Validator
 
 
-class LogisticRegression:
-    def __init__(self, learning_rate: float = 0.05, max_iter:int = 10000) -> None:
+class LogisticRegression(BaseEstimator, ClassifierMixin):
+    def __init__(
+        self,
+        learning_rate: float = 0.05,
+        max_iter: int = 10000,
+        tol: float = 1e-4,
+        fit_intercept: bool = True,  # noqa: FBT001
+         threshold: float = 0.5,
+    ) -> None:
         self.learning_rate = learning_rate
         self.max_iter = max_iter
-        self.coef_ = None
-        self.intercept_ = None
+        self.tol = tol
+        self.fit_intercept = fit_intercept
+        self.threshold = threshold
 
-    def _validate_data(self, x):
-        """Convert input data to a consistent 2D numpy array format."""
-        if isinstance(x, pd.Series):
-            return x.to_numpy().reshape(-1, 1)
-        if isinstance(x, np.ndarray) and len(x.shape) == 1:
-            return x.reshape(-1, 1)
-        if isinstance(x, pd.DataFrame):
-            return x.to_numpy()
-        # For other array-like objects or types we don't recognize
-        return np.asarray(x).reshape(-1, 1) if np.asarray(x).ndim == 1 else np.asarray(x)
+        # These will set during fitting
+        self.coef_: np.ndarray | None = None
+        self.intercept_: float | None = None
+        self.n_iter_: int | None = None
+        self.history_: dict[str, any] | None = None
 
-    def fit(self, x: pd.DataFrame, y:pd.Series) -> LogisticRegression:
-        # Convert input to standard format
-        # x = self._validate_data(x)
+        # Validate parameters upon initialization
+        self._check_params()
 
-        n_samples, n_features = x.shape
+    def _check_params(self) -> None:
+        """Validate model parameters."""
+        if self.learning_rate <= 0:
+            msg = f"Learning rate must be postive, got {self.learning_rate}"
+            raise ParameterError(msg)
 
-        w = np.zeros(n_features)
-        b = 0.0
+        if self.max_iter <= 0:
+            msg = f"max_iter must be positive, got {self.max_iter}"
+            raise ParameterError(msg)
 
-        # Run gradient descent
-        optimizer = ClassificationMetric(x, y, w, b, self.learning_rate, self.max_iter)
-        self.coef_ , self.intercept_ = optimizer.gradient_descent()
+        if self.tol <= 0:
+            msg = f"tol must be positive, got {self.tol}"
+            raise ParameterError(msg)
+
+        if not 0 < self.threshold < 1:
+            msg = f"threshold must be between 0 and 1, got {self.threshold}"
+            raise ParameterError(msg)
+
+    def fit(self, X: ArrayLike, y: ArrayLike) -> LogisticRegression:  # noqa: N803
+        # Validate and convert inputs to numpy arrays
+        X_array, y_array = Validator.validate_X_y(X, y)
+
+        # Initialize parameters
+        n_features = X_array.shape[1]
+        params_init = {
+            "coef": np.zeros(n_features),
+            "intercept": np.array([0.0]),
+        }
+
+        # Create optimizer
+        optimizer = GradientDescent(
+            learning_rate=self.learning_rate,
+            max_iter=self.max_iter,
+            tol=self.tol,
+        )
+
+        # Run Optimizer
+        optimizer_params, optimization_info = optimizer.optimize(
+            X=X_array,
+            y=y_array,
+            params_init=params_init,
+            compute_loss= LinearModel.log_loss,
+            compute_gradients=LinearModel.log_gradients,
+        )
+
+        # Store optimized parameters
+        self.coef_ = optimizer_params["coef"]
+        self.intercept_ = float(optimizer_params["intercept"][0])
+        self.n_iter_ = optimization_info["n_iter"]
+        self.history_ = {"cost_history": optimization_info["loss_history"]}
 
         return self
 
-    def sigmoid(self, z):
-        z = np.clip(z, -500, 500)
-        return 1/(1 + np.exp(-z))
-
-    def predict(self, x: pd.DataFrame) -> pd.Series:
-
+    def predict(self, X: ArrayLike) -> np.ndarray:  # noqa: N803
         # Check if model is fitted
         if self.coef_ is None or self.intercept_ is None:
-            msg = "Model not fitted. Call 'fit' first."
-            raise ValueError(msg)
+            msg = "LogisticRegression not fitted. Call 'fit' first."
+            raise NotFittedError(msg)
 
-         # Convert input to standard format
-        x = self._validate_data(x)
+        # Validate and convert input to numpy array
+        X_array = Validator.validate_array(X)
 
-        # Make predictions
-        z = np.dot(x, self.coef_) + self.intercept_
-        predictions = self.sigmoid(z)
-        y_pred = [1 if pred > 0.5 else 0 for pred in predictions]
+        # Check if input has correct number of features
+        if X_array.shape[1] != len(self.coef_):
+            msg = (
+                f"X has {X_array.shape[1]} features, but LogisticRegression "
+                f"was trained with {len(self.coef_)} features."
+            )
+            raise ValidationError(msg)
+
+        # Calculate predictions
+        z = LinearModel.predict(X=X_array, params={"coef": self.coef_, "intercept": self.intercept_})
+        y_pred = LinearModel.sigmoid(z)
+        y_pred = np.where(y_pred > self.threshold, 1, 0)
+
         return y_pred
+
+    def predict_proba(self, X: ArrayLike) -> np.ndarray:  # noqa: N803
+         # Check if model is fitted
+        if self.coef_ is None or self.intercept_ is None:
+            msg = "LogisticRegression not fitted. Call 'fit' first."
+            raise NotFittedError(msg)
+
+        # Validate and convert input to numpy array
+        X_array = Validator.validate_array(X)
+
+        # Check if input has correct number of features
+        if X_array.shape[1] != len(self.coef_):
+            msg = (
+                f"X has {X_array.shape[1]} features, but LogisticRegression "
+                f"was trained with {len(self.coef_)} features."
+            )
+            raise ValidationError(msg)
+
+        # Calculate probabilities
+        z = LinearModel.predict(X=X_array, params={"coef": self.coef_, "intercept": self.intercept_})
+        proba = LinearModel.sigmoid(z)
+
+        # For binary classification, return probabilities for both classes
+        return np.vstack([1 - proba, proba]).T

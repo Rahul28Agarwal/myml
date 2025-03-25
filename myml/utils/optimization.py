@@ -117,6 +117,42 @@ class LinearModel:
         """
         predict = LinearModel.predict(X, params)
         return np.mean((predict - y) ** 2)
+    
+    @staticmethod
+    def sigmoid(z: np.ndarray) -> np.ndarray:
+        z = np.clip(z, -500, 500)
+        return 1/(1 + np.exp(-z))
+    
+    @staticmethod
+    def log_loss(X: np.ndarray, y: np.ndarray, params: dict[str, np.ndarray]) -> float:  # noqa: N803
+        """Compute log loss.
+
+        Args:
+            X (np.ndarray):  Input features
+            y (np.ndarray): True target values
+            params (dict[str, np.ndarray]): Parameters with 'coef' and 'intercept' keys
+
+
+        Returns:
+            float: Log loss
+
+        """
+        linear_predict = LinearModel.predict(X, params)
+        predict = LinearModel.sigmoid(linear_predict)
+        loss = np.mean(-y * np.log(predict) - (1-y)* np.log(1-predict))
+        return loss
+    
+    @staticmethod
+    def log_gradients(X: np.ndarray, y: np.ndarray, params: dict[str, np.ndarray]) -> dict[str, np.ndarray]:  # noqa: N803
+        n_samples = X.shape[0]
+        linear_predict = LinearModel.predict(X, params)
+        predictions = LinearModel.sigmoid(linear_predict)
+        error = predictions - y
+
+        return {
+            "coef": (1/n_samples) * np.dot(X.T, error),
+            "intercept": np.array([np.mean(error)]),
+        }
 
     @staticmethod
     def mse_gradients(X: np.ndarray, y: np.ndarray, params: dict[str, np.ndarray]) -> dict[str, np.ndarray]:  # noqa: N803
