@@ -136,6 +136,7 @@ class RegressionMixin:
 
         r_squared = 1 - (sum_squared_residuals / sum_squared_total)
         return r_squared
+
 class ClassifierMixin:
     """Mixin class for all classifiers in myml.
 
