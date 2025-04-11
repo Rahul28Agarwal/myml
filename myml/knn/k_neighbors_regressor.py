@@ -3,63 +3,55 @@ from __future__ import annotations
 import numpy as np
 
 from ..base import BaseEstimator, RegressionMixin
-from ..exception import NotFittedError, ParameterError
+from ..exception import ParameterError, ValidationError
 from ..utils.validation import ArrayLike, Validator
 
 
 class KNeighborsRegressor(BaseEstimator, RegressionMixin):
     """Regression based on k-nearest neighbors."""
 
-    def __init__(self, k: int = 3) -> None:
+    def __init__(self, k: int = 3, weight: str = "uniform") -> None:
         self.k = k
-
-        self.is_fitted = False
+        self.weight = weight
+        self._check_params()
 
     def _check_params(self) -> None:
         """Validate model parameters."""
-        if self.k <= 0:
-            msg = f"K in the K-nearest neighbors must be postive, got {self.k}"
+        if not isinstance(self.k, int) or self.k <= 0:
+            msg = f"k must be positive integer, got {self.k}"
+            raise ParameterError(msg)
+
+        if self.weight not in ["uniform", "distance"]:
+            msg = f"Invalid weights: {self.weight}"
             raise ParameterError(msg)
 
     def fit(self, X: ArrayLike, y: ArrayLike) -> KNeighborsRegressor:  # noqa: N803
         # Validate and convert inputs to numpy arrays
-        self.X_array, self.y_array = Validator.validate_X_y(X, y)
-        self.is_fitted = True
+        self.X_, self.y_ = Validator.validate_X_y(X, y)
+        self.n_features_in_ = self.X_.shape[1]
         return self
 
-    def _euclidean_distance(self, x1, x2) -> float:
-        return np.sqrt(np.sum((x1 - x2)**2))
-
-    def _get_neighbors(self, x_test: np.array) -> float:
-        distances = []
-        for i, x_train in enumerate(self.X_array):
-            dist = self._euclidean_distance(x_test, x_train)
-            distances.append((i, dist))
-        distances.sort(key=lambda x:x[1])
-        return distances[:self.k]
+    def _euclidean_distance(self, X: np.ndarray) -> np.ndarray:  # noqa: N803
+        return np.sqrt(np.sum((self.X_ - X[:, np.newaxis])**2, axis=2))
 
 
-    def predict(self, X: ArrayLike):
-        if not self.is_fitted:
-            msg = "KNeighborsRegressor not fitted. Call 'Fit' first"
-            raise NotFittedError(msg)
+    def predict(self, X: ArrayLike) -> np.ndarray:  # noqa: N803
+        Validator.check_is_fitted(self, ["X_", "y_"])
 
         # validate and convert the numpy array
         X_array = Validator.validate_array(X)
 
-        predictions = []
+        if X.shape[1] != self.n_features_in_:
+            msg = f"Expected {self.n_features_in_} features, got {X.shape[1]}"
+            raise ValidationError(msg)
 
-        for x in X_array:
-            k_neighbors = self._get_neighbors(x)
-            neighbor_indices = [n[0] for n in k_neighbors]
+        distances = self._euclidean_distance(X_array)
+        neighbor_indices = np.argpartition(distances, self.k)[:, :self.k]
 
-            # Get target values of neighbors and calcualte mean
-            neighbor_values = self.y_array[neighbor_indices]
-            pred = np.mean(neighbor_values)
-
-            predictions.append(pred)
-
-        return np.array(predictions)
+        if self.weight == "distance":
+            weights = 1 / (distances[np.arange(len(X))[:, None], neighbor_indices] + 1e-8)
+            return np.average(self.y_[neighbor_indices], weights=weights, axis=1)
+        return np.mean(self.y_[neighbor_indices], axis=1)
 
 
 
