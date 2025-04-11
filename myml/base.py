@@ -113,7 +113,7 @@ class RegressionMixin:
 
         """
         # Check if model is fitted
-        Validator.check_is_fitted(self)
+        # Validator.check_is_fitted(self)
 
         # Validate inputs
         X_validated, y_validated = Validator.validate_X_y(X, y)
