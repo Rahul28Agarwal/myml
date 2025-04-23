@@ -38,18 +38,6 @@ class BaseEstimator(ABC):
         """
 
     @abstractmethod
-    def predict(self, X: ArrayLike) ->PredictionType:  # noqa: N803
-        """Make predictions using the trained model.
-
-        Args:
-            X (ArrayLike): Data to make predictions on
-
-        Returns:
-           PredictionType: Predicted values
-
-        """
-
-    @abstractmethod
     def _check_params(self) -> None:
         """Validate model parameters.
 
@@ -95,11 +83,52 @@ class BaseEstimator(ABC):
 
         return self
 
+
+class TransformerMixin:
+    """Mixin class for all transformers in the library."""
+
+    @abstractmethod
+    def transform(self, X: ArrayLike) -> np.ndarray:  # noqa: N803
+        """Apply the transformation to X.
+
+        Args:
+            X: Data to transform
+
+        Returns:
+            Transformed array
+
+        """
+
+    def fit_transform(self, X: ArrayLike, y: ArrayLike|None = None) -> np.ndarray:  # noqa: N803
+        """Fit to data, then transform it.
+
+        Args:
+            X: Training data
+            y: Target values (optional)
+
+        Returns:
+            Transformed array
+
+        """
+        return self.fit(X, y).transform(X)
+
 class RegressionMixin:
     """Mixin class for all regression estimators in myml.
 
     This mixin provides common functionality for regression models.
     """
+
+    @abstractmethod
+    def predict(self, X: ArrayLike) ->PredictionType:  # noqa: N803
+        """Make predictions using the trained model.
+
+        Args:
+            X (ArrayLike): Data to make predictions on
+
+        Returns:
+           PredictionType: Predicted values
+
+        """
 
     def score(self, X: ArrayLike, y: ArrayLike) -> float:  # noqa: N803
         """Return the coefficient of determination (R^2) of the prediction.
@@ -142,6 +171,18 @@ class ClassifierMixin:
 
     This mixin provides common functionality for classification models.
     """
+
+    @abstractmethod
+    def predict(self, X: ArrayLike) ->PredictionType:  # noqa: N803
+        """Make predictions using the trained model.
+
+        Args:
+            X (ArrayLike): Data to make predictions on
+
+        Returns:
+           PredictionType: Predicted values
+
+        """
 
     def predict_proba(self, X: ArrayLike) -> np.ndarray:  # noqa: N803
         """Predict class probabilities for samples in X.
